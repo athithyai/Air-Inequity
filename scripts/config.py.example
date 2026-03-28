@@ -1,0 +1,19 @@
+# Copy this file to config.py and fill in your credentials.
+# config.py is git-ignored — never commit real keys.
+
+# Copernicus Data Space Ecosystem (Sentinel Hub OAuth)
+# Register at: https://dataspace.copernicus.eu → User settings → OAuth clients
+SH_CLIENT_ID     = "your-client-id"
+SH_CLIENT_SECRET = "your-client-secret"
+
+# Year / month range for data collection
+YEARS  = list(range(2018, 2024))   # 2018–2023
+MONTHS = list(range(1, 13))        # Jan–Dec
+
+# Sentinel-5P data availability starts May 2018
+SENTINEL_START = "2018-05"
+
+# Data directories (relative to repo root)
+DATA_RAW       = "data/raw"
+DATA_INTERIM   = "data/interim"
+DATA_PROCESSED = "data/processed"

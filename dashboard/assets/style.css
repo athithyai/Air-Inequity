@@ -1,0 +1,46 @@
+/* Air Inequity Dashboard — custom styles */
+
+body {
+    font-family: "Inter", "Segoe UI", sans-serif;
+    background-color: #f8f9fa;
+}
+
+/* Header */
+h2 {
+    font-weight: 700;
+    color: #1a3a5c;
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+}
+
+.card-header {
+    background-color: #fff;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+}
+
+/* Index value cards — large centered number */
+.card-body h4 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+/* Range slider track */
+.rangeslider-slidebox {
+    fill: #2C5F8A !important;
+    fill-opacity: 0.15;
+}
+
+/* Dropdowns */
+.Select-control {
+    border-radius: 4px !important;
+}
+
+/* Subtle scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
