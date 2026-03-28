@@ -1,4 +1,4 @@
-# smog-gap — Air Inequity Index, Netherlands
+# Air Inequity Index, Netherlands
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
