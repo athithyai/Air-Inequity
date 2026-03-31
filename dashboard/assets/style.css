@@ -1,46 +1,80 @@
-/* Air Inequity Dashboard — custom styles */
+/* ── Base ────────────────────────────────────────────────────────────────── */
+* { box-sizing: border-box; }
 
 body {
-    font-family: "Inter", "Segoe UI", sans-serif;
-    background-color: #f8f9fa;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: #f1f5f9;
+    margin: 0;
 }
 
-/* Header */
-h2 {
-    font-weight: 700;
-    color: #1a3a5c;
-}
 
-/* Cards */
-.card {
-    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
-    border-radius: 6px;
+/* ── Dark dropdown (inside header) ─────────────────────────────────────── */
+.dropdown-dark .Select-control {
+    background: #1e293b !important;
+    border: 1px solid #475569 !important;
+    border-radius: 8px !important;
+    color: #e2e8f0 !important;
+    min-height: 34px !important;
+    cursor: pointer !important;
+    box-shadow: none !important;
 }
-
-.card-header {
-    background-color: #fff;
-    border-bottom: 1px solid #e9ecef;
-    font-weight: 600;
+.dropdown-dark .Select-value-label,
+.dropdown-dark .Select-placeholder {
+    color: #e2e8f0 !important;
+    font-size: 13px !important;
+    line-height: 32px !important;
 }
-
-/* Index value cards — large centered number */
-.card-body h4 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+.dropdown-dark .Select-arrow { border-top-color: #94a3b8 !important; }
+.dropdown-dark .Select-clear-zone { display: none !important; }
+.dropdown-dark .Select-menu-outer {
+    background: #1e293b !important;
+    border: 1px solid #475569 !important;
+    border-radius: 8px !important;
+    margin-top: 4px !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4) !important;
+    z-index: 9999 !important;
 }
-
-/* Range slider track */
-.rangeslider-slidebox {
-    fill: #2C5F8A !important;
-    fill-opacity: 0.15;
+.dropdown-dark .Select-option {
+    background: #1e293b !important;
+    color: #e2e8f0 !important;
+    font-size: 13px !important;
+    padding: 8px 12px !important;
 }
+.dropdown-dark .Select-option.is-focused { background: #334155 !important; }
+.dropdown-dark .Select-option.is-selected { background: #3b82f6 !important; color: white !important; }
 
-/* Dropdowns */
-.Select-control {
-    border-radius: 4px !important;
+
+/* ── Light dropdown (inside content cards) ──────────────────────────────── */
+.dropdown-light .Select-control {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    background: white !important;
+    color: #1e293b !important;
+    min-height: 34px !important;
+    font-size: 13px !important;
+    box-shadow: none !important;
 }
+.dropdown-light .Select-value-label { font-size: 13px !important; }
+.dropdown-light .Select-placeholder { font-size: 13px !important; color: #94a3b8 !important; }
+.dropdown-light .Select-menu-outer {
+    border: 1px solid #e2e8f0 !important;
+    border-radius: 8px !important;
+    margin-top: 4px !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.08) !important;
+    z-index: 9999 !important;
+}
+.dropdown-light .Select-option { font-size: 13px !important; padding: 8px 12px !important; }
+.dropdown-light .Select-option.is-focused { background: #f1f5f9 !important; }
+.dropdown-light .Select-option.is-selected { background: #3b82f6 !important; color: white !important; }
 
-/* Subtle scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-thumb { background: #ccc; border-radius: 3px; }
+
+/* ── Plotly chart — remove default white border artifacts ────────────────── */
+.js-plotly-plot .plotly .main-svg { background: transparent !important; }
+.dash-graph { display: block; }
+
+
+/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f5f9; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #94a3b8; }

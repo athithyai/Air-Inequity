@@ -102,15 +102,13 @@ print(f"Pollution Index range: [{df['Index'].min():.4f}, {df['Index'].max():.4f}
 # then INVERTED so that lower income → higher vulnerability score.
 # This makes the AII sensitive to economic disadvantage, not just pollution.
 
-def normalise_gdp(group: pd.DataFrame) -> pd.DataFrame:
-    mn, mx = group["GDP_per_capita"].min(), group["GDP_per_capita"].max()
-    denom  = mx - mn
-    group["GDP_Normalized"]     = 1 - (group["GDP_per_capita"] - mn) / denom if denom > 0 else 0.5
-    group["GDP_per_capita_min"] = mn
-    group["GDP_per_capita_max"] = mx
-    return group
-
-df = df.groupby(["Country", "year"], group_keys=False).apply(normalise_gdp)
+g = df.groupby(["Country", "year"])["GDP_per_capita"]
+mn = g.transform("min")
+mx = g.transform("max")
+denom = mx - mn
+df["GDP_Normalized"]     = (1 - (df["GDP_per_capita"] - mn) / denom).where(denom > 0, 0.5)
+df["GDP_per_capita_min"] = mn
+df["GDP_per_capita_max"] = mx
 print(f"GDP_Normalized range: [{df['GDP_Normalized'].min():.4f}, {df['GDP_Normalized'].max():.4f}]")
 
 

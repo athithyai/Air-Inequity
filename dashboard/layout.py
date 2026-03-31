@@ -1,198 +1,269 @@
-"""Dashboard layout definition."""
+"""Dashboard layout — Tailwind CSS."""
 
-import dash_bootstrap_components as dbc
 from dash import dcc, html
 
 from data_loader import NUTS_IDS, YEARS
 
 
-def create_layout() -> dbc.Container:
-    year_options = [{"label": str(y), "value": y} for y in YEARS]
-    region_options = [{"label": nid, "value": nid} for nid in NUTS_IDS]
+# ── Helper components ──────────────────────────────────────────────────────────
 
-    return dbc.Container(
+def _kpi_card(label: str, value_id: str, accent: str) -> html.Div:
+    """Large-number metric card with a coloured left border."""
+    borders = {"red": "border-red-500", "orange": "border-orange-400", "green": "border-emerald-500"}
+    values  = {"red": "text-red-500",   "orange": "text-orange-400",   "green": "text-emerald-500"}
+    return html.Div(
         [
-            # ── Header ────────────────────────────────────────────────────────
-            dbc.Row(
-                dbc.Col(
-                    html.Div(
-                        [
-                            html.H2("Air Inequity Index", className="mb-0"),
-                            html.P(
-                                "Satellite air quality × economic vulnerability — Netherlands NUTS-3",
-                                className="text-muted mb-0",
-                            ),
-                        ],
-                        className="py-3 border-bottom",
-                    )
-                )
-            ),
-
-            # ── Controls ──────────────────────────────────────────────────────
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Label("Year", className="fw-bold"),
-                            dcc.Dropdown(
-                                id="year-select",
-                                options=year_options,
-                                value=YEARS[-1],
-                                clearable=False,
-                            ),
-                        ],
-                        width=2,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Label("Colour map metric", className="fw-bold"),
-                            dcc.RadioItems(
-                                id="metric-select",
-                                options=[
-                                    {"label": "Air Inequity Index", "value": "Air_Inequity_Index"},
-                                    {"label": "Pollution Index",    "value": "Index"},
-                                    {"label": "GDP per Capita",     "value": "GDP_per_capita"},
-                                ],
-                                value="Air_Inequity_Index",
-                                inline=True,
-                                className="mt-1",
-                            ),
-                        ],
-                        width=7,
-                    ),
-                    dbc.Col(
-                        dbc.Button(
-                            "Download CSV",
-                            id="btn-download",
-                            color="secondary",
-                            size="sm",
-                            className="mt-4",
-                        ),
-                        width={"size": 2, "offset": 1},
-                    ),
-                ],
-                className="mt-3 mb-2 align-items-end",
-            ),
-
-            # ── Map + Index cards ─────────────────────────────────────────────
-            dbc.Row(
-                [
-                    dbc.Col(
-                        dcc.Graph(
-                            id="choropleth-map",
-                            style={"height": "480px"},
-                            config={"scrollZoom": True},
-                        ),
-                        width=8,
-                    ),
-                    dbc.Col(
-                        [
-                            _index_card("Air Inequity Index", "card-aii",   "primary"),
-                            _index_card("Pollution Index",    "card-index",  "warning"),
-                            _index_card("GDP per Capita (€)", "card-gdp",    "success"),
-                            html.Small(
-                                "Hover over a region to see its values",
-                                className="text-muted d-block text-center mt-2",
-                            ),
-                        ],
-                        width=4,
-                        className="d-flex flex-column justify-content-center",
-                    ),
-                ],
-                className="mb-3",
-            ),
-
-            # ── Time Series (main feature) ────────────────────────────────────
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader(
-                                dbc.Row(
-                                    [
-                                        dbc.Col(
-                                            html.H6("Air Inequity Index — Monthly Time Series", className="mb-0"),
-                                            width=6,
-                                        ),
-                                        dbc.Col(
-                                            dcc.Dropdown(
-                                                id="ts-region-select",
-                                                options=[{"label": "All regions (average)", "value": "__all__"}]
-                                                + region_options,
-                                                value="__all__",
-                                                clearable=False,
-                                                placeholder="Select region…",
-                                            ),
-                                            width=3,
-                                        ),
-                                        dbc.Col(
-                                            dcc.Checklist(
-                                                id="ts-show-pollutants",
-                                                options=[{"label": " Show pollutants", "value": "yes"}],
-                                                value=[],
-                                                inline=True,
-                                            ),
-                                            width=3,
-                                            className="d-flex align-items-center",
-                                        ),
-                                    ],
-                                    align="center",
-                                )
-                            ),
-                            dbc.CardBody(
-                                dcc.Graph(
-                                    id="time-series",
-                                    style={"height": "380px"},
-                                    config={"displayModeBar": True},
-                                )
-                            ),
-                        ]
-                    )
-                )
-            ),
-
-            # ── Pollutant box plot ────────────────────────────────────────────
-            dbc.Row(
-                dbc.Col(
-                    dbc.Card(
-                        [
-                            dbc.CardHeader(
-                                html.H6(
-                                    "Pollutant Quality Score Distribution",
-                                    className="mb-0",
-                                )
-                            ),
-                            dbc.CardBody(
-                                dcc.Graph(
-                                    id="box-plot",
-                                    style={"height": "300px"},
-                                )
-                            ),
-                        ]
-                    ),
-                    className="mt-3 mb-4",
-                )
-            ),
-
-            # ── Hidden stores & download ──────────────────────────────────────
-            dcc.Store(id="selected-nuts", data=None),
-            dcc.Download(id="download-csv"),
+            html.P(label, className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2"),
+            html.P("—", id=value_id, className=f"text-4xl font-bold tabular-nums {values[accent]}"),
         ],
-        fluid=True,
-        className="px-4",
+        className=f"bg-white rounded-xl p-5 border-l-4 {borders[accent]} shadow-sm flex-1 min-w-0",
     )
 
 
-def _index_card(title: str, value_id: str, color: str) -> dbc.Card:
-    return dbc.Card(
+def _section_header(title: str, subtitle: str = "") -> html.Div:
+    return html.Div(
         [
-            dbc.CardHeader(title, className="py-1 small"),
-            dbc.CardBody(
-                html.H4("—", id=value_id, className="mb-0 text-center"),
-                className="py-2",
-            ),
+            html.H2(title, className="text-sm font-semibold text-slate-700"),
+            html.P(subtitle, className="text-xs text-slate-400") if subtitle else None,
         ],
-        color=color,
-        outline=True,
-        className="mb-2",
+        className="px-5 pt-4 pb-2",
+    )
+
+
+# ── Main layout ────────────────────────────────────────────────────────────────
+
+def create_layout() -> html.Div:
+    year_opts   = [{"label": str(y), "value": y} for y in YEARS]
+    region_opts = [{"label": nid, "value": nid} for nid in NUTS_IDS]
+
+    return html.Div(
+        [
+            # ── HEADER ────────────────────────────────────────────────────────
+            html.Header(
+                html.Div(
+                    [
+                        # Title
+                        html.Div(
+                            [
+                                html.Span("🌍", className="text-2xl mr-3 select-none"),
+                                html.Div(
+                                    [
+                                        html.H1(
+                                            "Air Inequity Index",
+                                            className="text-lg font-bold text-white leading-tight",
+                                        ),
+                                        html.P(
+                                            "Satellite pollution × economic vulnerability — Netherlands NUTS-3",
+                                            className="text-xs text-slate-400 leading-tight",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            className="flex items-center",
+                        ),
+
+                        # Controls
+                        html.Div(
+                            [
+                                # Year dropdown
+                                html.Div(
+                                    [
+                                        html.Label(
+                                            "Year",
+                                            className="text-xs text-slate-400 mb-1 block font-medium",
+                                        ),
+                                        dcc.Dropdown(
+                                            id="year-select",
+                                            options=year_opts,
+                                            value=YEARS[-1],
+                                            clearable=False,
+                                            className="dropdown-dark",
+                                            style={"width": "90px"},
+                                        ),
+                                    ]
+                                ),
+
+                                # Metric radio
+                                html.Div(
+                                    [
+                                        html.Label(
+                                            "Colour map by",
+                                            className="text-xs text-slate-400 mb-1 block font-medium",
+                                        ),
+                                        dcc.RadioItems(
+                                            id="metric-select",
+                                            options=[
+                                                {"label": " Inequity",  "value": "Air_Inequity_Index"},
+                                                {"label": " Pollution", "value": "Index"},
+                                                {"label": " GDP/cap",   "value": "GDP_per_capita"},
+                                            ],
+                                            value="Air_Inequity_Index",
+                                            inline=True,
+                                            labelClassName="text-slate-300 text-sm mr-4 cursor-pointer",
+                                            inputClassName="mr-1 accent-blue-500",
+                                        ),
+                                    ]
+                                ),
+
+                                # Download
+                                html.Button(
+                                    "↓ Export CSV",
+                                    id="btn-download",
+                                    className=(
+                                        "text-xs bg-slate-700 hover:bg-slate-600 text-slate-200 "
+                                        "px-3 py-2 rounded-lg border border-slate-600 cursor-pointer "
+                                        "transition-colors whitespace-nowrap"
+                                    ),
+                                ),
+                            ],
+                            className="flex items-end gap-6",
+                        ),
+                    ],
+                    className="max-w-screen-xl mx-auto px-6 py-4 flex items-center justify-between",
+                ),
+                className="bg-slate-900 shadow-lg sticky top-0 z-50",
+            ),
+
+            # ── KPI STRIP ─────────────────────────────────────────────────────
+            html.Div(
+                html.Div(
+                    [
+                        _kpi_card("Air Inequity Index", "card-aii",   "red"),
+                        _kpi_card("Pollution Index",    "card-index", "orange"),
+                        _kpi_card("GDP per Capita (€)", "card-gdp",   "green"),
+                        html.Div(
+                            [
+                                html.P(
+                                    "Hover over a region",
+                                    className="text-slate-400 text-sm font-medium",
+                                ),
+                                html.P(
+                                    "on the map to explore its metrics",
+                                    className="text-slate-500 text-xs",
+                                ),
+                                html.Div(
+                                    className="w-8 h-0.5 bg-blue-500 rounded-full mt-3"
+                                ),
+                            ],
+                            className="flex-1 flex flex-col justify-center pl-4 border-l border-slate-200",
+                        ),
+                    ],
+                    className="max-w-screen-xl mx-auto px-6 py-4 flex gap-4",
+                ),
+                className="bg-slate-50 border-b border-slate-200",
+            ),
+
+            # ── MAIN ──────────────────────────────────────────────────────────
+            html.Main(
+                html.Div(
+                    [
+                        # Choropleth map
+                        html.Div(
+                            dcc.Graph(
+                                id="choropleth-map",
+                                style={"height": "500px"},
+                                config={"scrollZoom": True, "displayModeBar": False},
+                            ),
+                            className="bg-white rounded-2xl shadow-sm overflow-hidden",
+                        ),
+
+                        # Time series
+                        html.Div(
+                            [
+                                html.Div(
+                                    [
+                                        html.H2(
+                                            "Monthly Trend",
+                                            className="text-sm font-semibold text-slate-700",
+                                        ),
+                                        html.Div(
+                                            [
+                                                dcc.Dropdown(
+                                                    id="ts-region-select",
+                                                    options=[
+                                                        {"label": "All regions (average)", "value": "__all__"}
+                                                    ] + region_opts,
+                                                    value="__all__",
+                                                    clearable=False,
+                                                    placeholder="Select region…",
+                                                    className="dropdown-light",
+                                                    style={"width": "220px", "fontSize": "13px"},
+                                                ),
+                                                dcc.Checklist(
+                                                    id="ts-show-pollutants",
+                                                    options=[{"label": " Show pollutant breakdown", "value": "yes"}],
+                                                    value=[],
+                                                    inline=True,
+                                                    labelClassName="text-slate-500 text-sm cursor-pointer",
+                                                    inputClassName="mr-1 accent-blue-500",
+                                                    className="ml-4",
+                                                ),
+                                            ],
+                                            className="flex items-center",
+                                        ),
+                                    ],
+                                    className="flex items-center justify-between px-5 pt-4 pb-1",
+                                ),
+                                dcc.Graph(
+                                    id="time-series",
+                                    style={"height": "340px"},
+                                    config={"displayModeBar": True, "displaylogo": False},
+                                ),
+                            ],
+                            className="bg-white rounded-2xl shadow-sm mt-4 overflow-hidden",
+                        ),
+
+                        # Box plot
+                        html.Div(
+                            [
+                                _section_header(
+                                    "Pollutant Quality Scores",
+                                    "Score 1 = cleanest · 6 = most polluted · filtered by selected year & region",
+                                ),
+                                dcc.Graph(
+                                    id="box-plot",
+                                    style={"height": "280px"},
+                                    config={"displayModeBar": False},
+                                ),
+                            ],
+                            className="bg-white rounded-2xl shadow-sm mt-4 overflow-hidden",
+                        ),
+                    ],
+                    className="max-w-screen-xl mx-auto px-6 py-6",
+                )
+            ),
+
+            # ── FOOTER ────────────────────────────────────────────────────────
+            html.Footer(
+                html.Div(
+                    html.P(
+                        [
+                            "Data: Sentinel-5P TROPOMI · CAMS EAC4 · Eurostat NUTS-3  ·  ",
+                            html.A(
+                                "View on GitHub",
+                                href="https://github.com/athithyai/Air-Inequity",
+                                target="_blank",
+                                className="text-blue-400 hover:text-blue-300 transition-colors",
+                            ),
+                            "  ·  Remake of the ",
+                            html.A(
+                                "EU Big Data Hackathon 2025 NSI_NL",
+                                href="https://github.com/eurostat/eubd2025_results/tree/main/NSI_NL",
+                                target="_blank",
+                                className="text-blue-400 hover:text-blue-300 transition-colors",
+                            ),
+                        ],
+                        className="text-slate-500 text-xs text-center",
+                    ),
+                    className="max-w-screen-xl mx-auto px-6 py-5",
+                ),
+                className="bg-slate-900 mt-8",
+            ),
+
+            # Hidden stores & download component
+            dcc.Store(id="selected-nuts", data=None),
+            dcc.Download(id="download-csv"),
+        ],
+        className="min-h-screen bg-slate-100",
+        style={"fontFamily": "Inter, system-ui, sans-serif"},
     )

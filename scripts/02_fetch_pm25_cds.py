@@ -59,7 +59,8 @@ else:
 # ── 2. Open and inspect ───────────────────────────────────────────────────────
 ds = xr.open_dataset(NC_PATH)
 print(f"\nVariables: {list(ds.data_vars)}")
-print(f"Time steps: {len(ds.coords['time'])}  ({ds.coords['time'].values[0]} … {ds.coords['time'].values[-1]})")
+TIME_DIM = "valid_time" if "valid_time" in ds.coords else "time"
+print(f"Time steps: {len(ds.coords[TIME_DIM])}  ({ds.coords[TIME_DIM].values[0]} … {ds.coords[TIME_DIM].values[-1]})")
 
 # EAC4 uses 'pm2p5' for PM2.5
 PM25_VAR = "pm2p5"
@@ -81,23 +82,23 @@ res_lat = float(lats[1] - lats[0])
 
 # Build affine transform from grid bounds
 transform = from_bounds(
-    left   = float(lons.min()) - abs(res_lon) / 2,
-    bottom = float(lats.min()) - abs(res_lat) / 2,
-    right  = float(lons.max()) + abs(res_lon) / 2,
-    top    = float(lats.max()) + abs(res_lat) / 2,
-    width  = len(lons),
-    height = len(lats),
+    float(lons.min()) - abs(res_lon) / 2,   # west
+    float(lats.min()) - abs(res_lat) / 2,   # south
+    float(lons.max()) + abs(res_lon) / 2,   # east
+    float(lats.max()) + abs(res_lat) / 2,   # north
+    len(lons),                               # width
+    len(lats),                               # height
 )
 
 rows = []
-times = pd.DatetimeIndex(ds.coords["time"].values)
+times = pd.DatetimeIndex(ds.coords[TIME_DIM].values)
 total = len(times)
 
 for i, t in enumerate(times, 1):
     year  = t.year
     month = t.month
 
-    arr = ds[PM25_VAR].sel(time=t).values  # shape: (lat, lon)
+    arr = ds[PM25_VAR].sel({TIME_DIM: t}).values  # shape: (lat, lon)
 
     # rasterstats expects top→bottom latitude order
     if res_lat > 0:      # ascending lat → flip
@@ -105,7 +106,11 @@ for i, t in enumerate(times, 1):
 
     arr = arr * 1e9      # kg/m³ → µg/m³
 
-    stats = zonal_stats(nuts, arr, affine=transform, stats=["mean"], nodata=np.nan)
+    # all_touched=True: include any cell that touches the polygon, not just
+    # cells whose centres fall inside. Essential for small NUTS-3 regions on
+    # the coarse 0.75° CAMS grid where most regions contain no pixel centre.
+    stats = zonal_stats(nuts, arr, affine=transform, stats=["mean"],
+                        nodata=np.nan, all_touched=True)
 
     for region, stat in zip(nuts.itertuples(), stats):
         rows.append({

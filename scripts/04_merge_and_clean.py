@@ -103,6 +103,16 @@ gdp_pop["GDP_per_capita"] = gdp_pop["GDP"] / gdp_pop["population"]
 
 df = df.merge(gdp_pop, on=["NUTS_ID", "year"], how="left")
 
+# Some NUTS-3 regions lack Eurostat GDP data (structural gaps or recent revisions).
+# Fix: forward-fill then backward-fill within each region across years, then
+# fall back to the NL annual mean for any still-missing values.
+for col in ["GDP", "population", "GDP_per_capita"]:
+    df[col] = (df.sort_values(["NUTS_ID", "year"])
+                 .groupby("NUTS_ID")[col]
+                 .transform(lambda s: s.ffill().bfill()))
+    nl_annual_mean = df.groupby("year")[col].transform("mean")
+    df[col] = df[col].fillna(nl_annual_mean)
+
 
 # ── 6. Add season and country ─────────────────────────────────────────────────
 df["season"]  = df["month"].map(SEASON_MAP)

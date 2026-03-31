@@ -1,5 +1,7 @@
 scripts/config.py
-data/
+data/raw/
+data/interim/
 *.nc
 __pycache__/
 .ipynb_checkpoints/
+.claude/
