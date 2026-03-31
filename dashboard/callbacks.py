@@ -5,32 +5,36 @@ import plotly.graph_objects as go
 
 from dash import Input, Output, State, callback, dcc
 
-from data_loader import ANNUAL, DF, GEOJSON, POLLUTANTS
+from data_loader import ANNUAL, DF, GEOJSON, NAME_MAP, NUTS_IDS, POLLUTANTS
 
-# ── Colour scales ──────────────────────────────────────────────────────────────
+# ── Shared chart style ────────────────────────────────────────────────────────
+_FONT = dict(family="Inter, system-ui, sans-serif", size=12, color="#334155")
+_CHART_BASE = dict(
+    paper_bgcolor="white",
+    plot_bgcolor="white",
+    font=_FONT,
+    hoverlabel=dict(bgcolor="white", bordercolor="#e2e8f0", font=_FONT),
+    margin=dict(t=16, b=40, l=50, r=16),
+)
+
+# ── Colour scales ─────────────────────────────────────────────────────────────
 _CHOROPLETH_SCALES = {
     "Air_Inequity_Index": "RdYlGn_r",
-    "Index":              "Oranges",
+    "Index":              "OrRd",
     "GDP_per_capita":     "Blues",
 }
-
 _METRIC_LABELS = {
     "Air_Inequity_Index": "Air Inequity Index",
     "Index":              "Pollution Index",
     "GDP_per_capita":     "GDP per Capita (€)",
 }
-
 _POLLUTANT_COLORS = {
-    "PM25": "#E15759",
-    "NO2":  "#F28E2B",
-    "O3":   "#76B7B2",
-    "SO2":  "#59A14F",
-    "CO":   "#B07AA1",
-    "HCHO": "#EDC948",
+    "PM25": "#E15759", "NO2": "#F28E2B", "O3": "#76B7B2",
+    "SO2":  "#59A14F", "CO": "#B07AA1",  "HCHO": "#EDC948",
 }
 
 
-# ── 1. Store hovered region ────────────────────────────────────────────────────
+# ── 1. Store hovered NUTS_ID ──────────────────────────────────────────────────
 @callback(
     Output("selected-nuts", "data"),
     Input("choropleth-map", "hoverData"),
@@ -41,43 +45,59 @@ def store_hover(hover_data):
     return None
 
 
-# ── 2. Choropleth map ──────────────────────────────────────────────────────────
+# ── 2. Choropleth map (flat tiled, carto-positron) ────────────────────────────
 @callback(
     Output("choropleth-map", "figure"),
-    Input("year-select", "value"),
+    Input("year-select",  "value"),
     Input("metric-select", "value"),
 )
 def update_map(year: int, metric: str):
-    data = ANNUAL[ANNUAL["year"] == year]
+    data = ANNUAL[ANNUAL["year"] == year].copy()
 
-    fig = px.choropleth(
+    fig = px.choropleth_mapbox(
         data,
         geojson=GEOJSON,
         locations="NUTS_ID",
         featureidkey="properties.NUTS_ID",
         color=metric,
         color_continuous_scale=_CHOROPLETH_SCALES[metric],
-        hover_name="NUTS_ID",
-        hover_data={
-            "Air_Inequity_Index": ":.3f",
-            "Index":              ":.3f",
-            "GDP_per_capita":     ":,.0f",
-        },
-        labels={metric: _METRIC_LABELS[metric]},
+        mapbox_style="carto-positron",
+        zoom=6.4,
+        center={"lat": 52.35, "lon": 5.25},
+        opacity=0.75,
+        custom_data=["region_name", "Air_Inequity_Index", "Index", "GDP_per_capita"],
     )
 
-    fig.update_geos(
-        fitbounds="locations",
-        visible=False,
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{customdata[0]}</b>"
+            "<span style='color:#94a3b8'> · %{location}</span><br>"
+            "<br>"
+            "Air Inequity Index&nbsp;&nbsp;<b>%{customdata[1]:.3f}</b><br>"
+            "Pollution Index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>%{customdata[2]:.3f}</b><br>"
+            "GDP per Capita&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>€%{customdata[3]:,.0f}</b>"
+            "<extra></extra>"
+        ),
+        marker_line_width=0.5,
+        marker_line_color="white",
     )
+
     fig.update_layout(
-        margin={"r": 0, "t": 0, "l": 0, "b": 0},
-        coloraxis_colorbar={"title": _METRIC_LABELS[metric], "len": 0.7},
+        coloraxis_colorbar=dict(
+            title=_METRIC_LABELS[metric],
+            title_side="right",
+            thickness=12,
+            len=0.6,
+            tickfont=dict(size=11),
+        ),
+        margin=dict(r=0, t=0, l=0, b=0),
+        paper_bgcolor="white",
+        font=_FONT,
     )
     return fig
 
 
-# ── 3. Index cards ─────────────────────────────────────────────────────────────
+# ── 3. KPI cards (hover → region values) ──────────────────────────────────────
 @callback(
     Output("card-aii",   "children"),
     Output("card-index", "children"),
@@ -99,81 +119,89 @@ def update_cards(nuts_id, year):
     )
 
 
-# ── 4. Time series ─────────────────────────────────────────────────────────────
+# ── 4. Sync dropdown → map hover (so dropdown label stays in sync) ─────────────
+@callback(
+    Output("ts-region-select", "value"),
+    Input("selected-nuts",     "data"),
+    State("ts-region-select",  "value"),
+)
+def sync_ts_dropdown(hovered_nuts, current):
+    return hovered_nuts if hovered_nuts else current
+
+
+# ── 5. Time series (driven by dropdown, which is synced to hover above) ────────
 @callback(
     Output("time-series", "figure"),
     Input("ts-region-select",   "value"),
     Input("ts-show-pollutants", "value"),
-    Input("selected-nuts",      "data"),  # map hover overrides the dropdown
 )
-def update_time_series(selected_region, show_pollutants, hovered_nuts):
-    # Map hover takes priority when user is hovering
-    region = hovered_nuts if hovered_nuts else selected_region
-
+def update_time_series(region, show_pollutants):
     if region == "__all__" or region is None:
-        subset = DF.groupby("date").agg(
-            Air_Inequity_Index=("Air_Inequity_Index", "mean"),
-            **{f"{p}_weighted_quality": (f"{p}_weighted_quality", "mean") for p in POLLUTANTS},
-        ).reset_index()
-        title = "Netherlands average"
+        subset = (
+            DF.groupby("date")
+            .agg(
+                Air_Inequity_Index=("Air_Inequity_Index", "mean"),
+                **{f"{p}_weighted_quality": (f"{p}_weighted_quality", "mean") for p in POLLUTANTS},
+            )
+            .reset_index()
+        )
+        title = "Netherlands — all regions (average)"
     else:
         subset = DF[DF["NUTS_ID"] == region].sort_values("date")
-        title = region
+        name   = NAME_MAP.get(region, region)
+        title  = f"{name} ({region})"
 
     fig = go.Figure()
 
-    # ── Main AII line ──────────────────────────────────────────────────────────
-    fig.add_trace(
-        go.Scatter(
-            x=subset["date"],
-            y=subset["Air_Inequity_Index"],
-            mode="lines+markers",
-            name="Air Inequity Index",
-            line={"color": "#2C5F8A", "width": 2.5},
-            marker={"size": 4},
-            hovertemplate="<b>%{x|%b %Y}</b><br>AII: %{y:.3f}<extra></extra>",
-        )
-    )
-
-    # ── Optional: stacked area of weighted pollutant contributions ─────────────
+    # Stacked pollutant area (optional, rendered beneath the AII line)
     if "yes" in (show_pollutants or []):
-        for pollutant in POLLUTANTS:
-            col = f"{pollutant}_weighted_quality"
-            fig.add_trace(
-                go.Scatter(
-                    x=subset["date"],
-                    y=subset[col],
-                    mode="lines",
-                    name=pollutant,
-                    stackgroup="pollutants",
-                    line={"width": 0, "color": _POLLUTANT_COLORS[pollutant]},
-                    hovertemplate=f"<b>%{{x|%b %Y}}</b><br>{pollutant}: %{{y:.3f}}<extra></extra>",
-                    opacity=0.7,
-                )
-            )
+        for p in POLLUTANTS:
+            col = f"{p}_weighted_quality"
+            fig.add_trace(go.Scatter(
+                x=subset["date"], y=subset[col],
+                name=p, mode="lines",
+                stackgroup="pollutants",
+                line=dict(width=0, color=_POLLUTANT_COLORS[p]),
+                hovertemplate=f"<b>{p}</b>: %{{y:.3f}}<extra></extra>",
+                opacity=0.7,
+            ))
+
+    # Main AII line
+    fig.add_trace(go.Scatter(
+        x=subset["date"], y=subset["Air_Inequity_Index"],
+        mode="lines+markers",
+        name="Air Inequity Index",
+        line=dict(color="#3b82f6", width=2.5),
+        marker=dict(size=4, color="#3b82f6"),
+        hovertemplate="<b>%{x|%b %Y}</b>  AII: <b>%{y:.3f}</b><extra></extra>",
+    ))
 
     fig.update_layout(
-        title={"text": f"<b>{title}</b>", "font": {"size": 13}},
-        xaxis={
-            "title": None,
-            "rangeslider": {"visible": True, "thickness": 0.06},
-            "rangeselector": {
-                "buttons": [
-                    {"count": 1, "label": "1Y", "step": "year",  "stepmode": "backward"},
-                    {"count": 3, "label": "3Y", "step": "year",  "stepmode": "backward"},
-                    {"step": "all", "label": "All"},
-                ]
-            },
-        },
-        yaxis={"title": "Air Inequity Index"},
-        legend={"orientation": "h", "y": -0.25},
+        **_CHART_BASE,
+        title=dict(text=f"<b>{title}</b>", font=dict(size=13, color="#0f172a"), x=0.01),
+        xaxis=dict(
+            title=None,
+            showgrid=True, gridcolor="#f1f5f9",
+            rangeslider=dict(visible=True, thickness=0.05),
+            rangeselector=dict(
+                buttons=[
+                    dict(count=1, label="1Y", step="year",  stepmode="backward"),
+                    dict(count=3, label="3Y", step="year",  stepmode="backward"),
+                    dict(step="all", label="All"),
+                ],
+                bgcolor="white", bordercolor="#e2e8f0", borderwidth=1,
+                font=dict(size=11),
+            ),
+        ),
+        yaxis=dict(title="Air Inequity Index", showgrid=True, gridcolor="#f1f5f9"),
+        legend=dict(orientation="h", y=-0.28, font=dict(size=11)),
         hovermode="x unified",
-        margin={"t": 40, "b": 60, "l": 50, "r": 20},
+        margin=dict(t=40, b=70, l=50, r=16),
     )
     return fig
 
 
-# ── 5. Pollutant box plot ──────────────────────────────────────────────────────
+# ── 6. Pollutant box plot ──────────────────────────────────────────────────────
 @callback(
     Output("box-plot", "figure"),
     Input("selected-nuts", "data"),
@@ -185,50 +213,40 @@ def update_boxplot(nuts_id, year):
         mask = mask & (DF["NUTS_ID"] == nuts_id)
     subset = DF[mask]
 
+    name = NAME_MAP.get(nuts_id, nuts_id) if nuts_id else "All regions"
+
     fig = go.Figure()
     for p in POLLUTANTS:
-        col = f"{p}_quality"
-        fig.add_trace(
-            go.Box(
-                y=subset[col],
-                name=p,
-                marker_color=_POLLUTANT_COLORS[p],
-                boxmean=True,
-                hovertemplate=f"<b>{p}</b><br>Score: %{{y}}<extra></extra>",
-            )
-        )
+        fig.add_trace(go.Box(
+            y=subset[f"{p}_quality"],
+            name=p,
+            marker_color=_POLLUTANT_COLORS[p],
+            boxmean=True,
+            hovertemplate=f"<b>{p}</b><br>Score: %{{y}}<extra></extra>",
+            line_width=1.5,
+        ))
 
     fig.update_layout(
-        yaxis={
-            "title": "Quality score (1 = best, 6 = worst)",
-            "range": [0.5, 6.5],
-            "dtick": 1,
-        },
+        **_CHART_BASE,
+        title=dict(text=f"<b>{name} · {year}</b>", font=dict(size=13, color="#0f172a"), x=0.01),
+        yaxis=dict(
+            title="Quality score (1 = cleanest, 6 = worst)",
+            range=[0.5, 6.5], dtick=1,
+            showgrid=True, gridcolor="#f1f5f9",
+        ),
         showlegend=False,
-        margin={"t": 10, "b": 30, "l": 50, "r": 20},
         hovermode="closest",
+        margin=dict(t=40, b=30, l=60, r=16),
     )
     return fig
 
 
-# ── 6. CSV download ────────────────────────────────────────────────────────────
+# ── 7. CSV download ────────────────────────────────────────────────────────────
 @callback(
     Output("download-csv", "data"),
     Input("btn-download", "n_clicks"),
     prevent_initial_call=True,
 )
 def download_csv(_):
-    export = DF.drop(columns=["date"])
+    export = DF.drop(columns=["date", "region_name"], errors="ignore")
     return dcc.send_data_frame(export.to_csv, "air_inequity_nl.csv", index=False)
-
-
-# ── 7. Sync map-hover to time-series region dropdown ──────────────────────────
-@callback(
-    Output("ts-region-select", "value"),
-    Input("selected-nuts",     "data"),
-    State("ts-region-select",  "value"),
-)
-def sync_ts_dropdown(hovered_nuts, current):
-    if hovered_nuts:
-        return hovered_nuts
-    return current
