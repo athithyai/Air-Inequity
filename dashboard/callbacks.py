@@ -14,7 +14,6 @@ _CHART_BASE = dict(
     plot_bgcolor="white",
     font=_FONT,
     hoverlabel=dict(bgcolor="white", bordercolor="#e2e8f0", font=_FONT),
-    margin=dict(t=16, b=40, l=50, r=16),
 )
 
 # ── Colour scales ─────────────────────────────────────────────────────────────
