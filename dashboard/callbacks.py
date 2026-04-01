@@ -287,8 +287,7 @@ def scatter_gdp_aii(year):
         color_continuous_scale="RdYlGn_r",
         hover_data={"label": True, "NUTS_ID": False,
                     "GDP_per_capita": ":,.0f",
-                    "Air_Inequity_Index": ":.3f",
-                    "color": False},
+                    "Air_Inequity_Index": ":.3f"},
         labels={"GDP_per_capita": "GDP per Capita (€)",
                 "Air_Inequity_Index": "Air Inequity Index"},
     )
@@ -351,8 +350,7 @@ def scatter_green_poll(year):
         color_continuous_scale="OrRd",
         hover_data={"label": True, "NUTS_ID": False,
                     "green_pct": ":.1f",
-                    "Index": ":.3f",
-                    "color": False},
+                    "Index": ":.3f"},
         labels={"green_pct": "Green Space %", "Index": "Pollution Index"},
     )
     fig.update_traces(
