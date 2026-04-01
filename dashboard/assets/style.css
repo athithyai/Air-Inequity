@@ -1,4 +1,4 @@
-/* ── Base ────────────────────────────────────────────────────────────────── */
+/* ── Base ─────────────────────────────────────────────────────────────────── */
 * { box-sizing: border-box; }
 
 body {
@@ -8,7 +8,7 @@ body {
 }
 
 
-/* ── Dark dropdown (inside header) ─────────────────────────────────────── */
+/* ── Dark dropdown (inside header) ──────────────────────────────────────── */
 .dropdown-dark .Select-control {
     background: #1e293b !important;
     border: 1px solid #475569 !important;
@@ -68,12 +68,41 @@ body {
 .dropdown-light .Select-option.is-selected { background: #3b82f6 !important; color: white !important; }
 
 
-/* ── Plotly chart — remove default white border artifacts ────────────────── */
+/* ── Tabs ────────────────────────────────────────────────────────────────── */
+.custom-tab {
+    padding: 8px 20px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    color: #64748b !important;
+    border-bottom: 2px solid transparent !important;
+    background: transparent !important;
+}
+.custom-tab--selected {
+    color: #3b82f6 !important;
+    border-bottom: 2px solid #3b82f6 !important;
+    background: white !important;
+    border-radius: 8px 8px 0 0 !important;
+}
+.custom-tab:hover { color: #334155 !important; }
+
+/* Dash tab container */
+.tab-container { border-bottom: 1px solid #e2e8f0; }
+
+
+/* ── Plotly chart ────────────────────────────────────────────────────────── */
 .js-plotly-plot .plotly .main-svg { background: transparent !important; }
 .dash-graph { display: block; }
 
 
-/* ── Scrollbar ──────────────────────────────────────────────────────────── */
+/* ── DataTable overrides ─────────────────────────────────────────────────── */
+.dash-table-container .dash-spreadsheet-container {
+    border-radius: 0 !important;
+    border: none !important;
+}
+.dash-table-container input.dash-filter { font-size: 11px !important; }
+
+
+/* ── Scrollbar ───────────────────────────────────────────────────────────── */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: #f1f5f9; }
 ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }

@@ -40,7 +40,7 @@ app.index_string = """<!DOCTYPE html>
   </body>
 </html>"""
 
-app.layout = create_layout()
+app.layout = create_layout(None)
 
 # Import callbacks after app is created (avoids circular import)
 import callbacks  # noqa: F401, E402
