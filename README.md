@@ -4,7 +4,7 @@
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Data](https://img.shields.io/badge/data-Sentinel--5P%20%7C%20CAMS%20%7C%20Eurostat-orange)
 
-A remake of the [EU Big Data Hackathon 2025 NSI_NL project](https://github.com/eurostat/eubd2025_results/tree/main/NSI_NL).
+A second iteration of the [EU Big Data Hackathon 2025 NSI_NL project](https://github.com/eurostat/eubd2025_results/tree/main/NSI_NL) funded by Eurostat. 
 
 Combines satellite air quality data with Eurostat regional GDP to compute an **Air Inequity Index (AII)** — a measure of how economically vulnerable regions experience disproportionate air pollution exposure across Netherlands NUTS-3 regions.
 
