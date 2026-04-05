@@ -5,7 +5,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 from dash import Input, Output, State, callback, dash_table, dcc, html
 
-from data_loader import ANNUAL, DF, GEOJSON, NAME_MAP, NUTS_IDS, POLLUTANTS, REGION_STATIC, YEARS
+from data_loader import (ANNUAL, DF, GEOJSON, GM_ANNUAL, GM_GEOJSON,
+                         HAS_GEMEENTE, NAME_MAP, NUTS_IDS, POLLUTANTS,
+                         REGION_STATIC, YEARS)
 
 # ── Shared style ──────────────────────────────────────────────────────────────
 _FONT = dict(family="Inter, system-ui, sans-serif", size=12, color="#334155")
@@ -57,42 +59,89 @@ def store_hover(hover_data):
 # ═══════════════════════════════════════════════════════════════════════════════
 @callback(
     Output("choropleth-map", "figure"),
-    Input("year-select",   "value"),
-    Input("metric-select", "value"),
+    Input("year-select",      "value"),
+    Input("metric-select",    "value"),
+    Input("boundary-select",  "value"),
 )
-def update_map(year, metric):
-    data = ANNUAL[ANNUAL["year"] == year].copy()
-    if metric not in data.columns:
-        metric = "Air_Inequity_Index"
+def update_map(year, metric, boundary):
+    use_gemeente = (boundary == "gemeente") and HAS_GEMEENTE and GM_ANNUAL is not None
 
-    fig = px.choropleth_mapbox(
-        data,
-        geojson=GEOJSON,
-        locations="NUTS_ID",
-        featureidkey="properties.NUTS_ID",
-        color=metric,
-        color_continuous_scale=_CHOROPLETH_SCALES.get(metric, "RdYlGn_r"),
-        mapbox_style="carto-positron",
-        zoom=6.4,
-        center={"lat": 52.35, "lon": 5.25},
-        opacity=0.75,
-        custom_data=["region_name", "Air_Inequity_Index", "Index", "GDP_per_capita"],
-    )
-    fig.update_traces(
-        hovertemplate=(
-            "<b>%{customdata[0]}</b>"
-            "<span style='color:#94a3b8'> · %{location}</span><br><br>"
-            "Air Inequity Index&nbsp;&nbsp;<b>%{customdata[1]:.3f}</b><br>"
-            "Pollution Index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>%{customdata[2]:.3f}</b><br>"
-            "GDP per Capita&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>€%{customdata[3]:,.0f}</b>"
-            "<extra></extra>"
-        ),
-        marker_line_width=0.5,
-        marker_line_color="white",
-    )
+    if use_gemeente:
+        data = GM_ANNUAL[GM_ANNUAL["year"] == year].copy()
+        # Map metric name: gemeente uses GM_AII for Air_Inequity_Index
+        gm_metric = "GM_AII" if metric == "Air_Inequity_Index" else metric
+        if gm_metric not in data.columns:
+            gm_metric = "GM_AII"
+        color_col = gm_metric
+
+        # Build hover custom_data
+        for col in ["GM_NAME", "GM_AII", "Index", "income_eur", "green_pct"]:
+            if col not in data.columns:
+                data[col] = None
+
+        fig = px.choropleth_mapbox(
+            data,
+            geojson=GM_GEOJSON,
+            locations="GM_CODE",
+            featureidkey="properties.statcode",
+            color=color_col,
+            color_continuous_scale=_CHOROPLETH_SCALES.get(metric, "RdYlGn_r"),
+            mapbox_style="carto-positron",
+            zoom=6.4,
+            center={"lat": 52.35, "lon": 5.25},
+            opacity=0.75,
+            custom_data=["GM_NAME", "GM_AII", "Index", "income_eur", "green_pct"],
+        )
+        fig.update_traces(
+            hovertemplate=(
+                "<b>%{customdata[0]}</b>"
+                "<span style='color:#94a3b8'> · %{location}</span><br><br>"
+                "Air Inequity Index&nbsp;&nbsp;<b>%{customdata[1]:.3f}</b><br>"
+                "Pollution Index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>%{customdata[2]:.3f}</b><br>"
+                "Avg Income&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>€%{customdata[3]:,.0f}</b><br>"
+                "Green Space&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>%{customdata[4]:.1f}%</b>"
+                "<extra></extra>"
+            ),
+            marker_line_width=0.3,
+            marker_line_color="white",
+        )
+        color_title = "Gemeente AII" if metric == "Air_Inequity_Index" else _METRIC_LABELS.get(metric, metric)
+
+    else:
+        data = ANNUAL[ANNUAL["year"] == year].copy()
+        if metric not in data.columns:
+            metric = "Air_Inequity_Index"
+
+        fig = px.choropleth_mapbox(
+            data,
+            geojson=GEOJSON,
+            locations="NUTS_ID",
+            featureidkey="properties.NUTS_ID",
+            color=metric,
+            color_continuous_scale=_CHOROPLETH_SCALES.get(metric, "RdYlGn_r"),
+            mapbox_style="carto-positron",
+            zoom=6.4,
+            center={"lat": 52.35, "lon": 5.25},
+            opacity=0.75,
+            custom_data=["region_name", "Air_Inequity_Index", "Index", "GDP_per_capita"],
+        )
+        fig.update_traces(
+            hovertemplate=(
+                "<b>%{customdata[0]}</b>"
+                "<span style='color:#94a3b8'> · %{location}</span><br><br>"
+                "Air Inequity Index&nbsp;&nbsp;<b>%{customdata[1]:.3f}</b><br>"
+                "Pollution Index&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>%{customdata[2]:.3f}</b><br>"
+                "GDP per Capita&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<b>€%{customdata[3]:,.0f}</b>"
+                "<extra></extra>"
+            ),
+            marker_line_width=0.5,
+            marker_line_color="white",
+        )
+        color_title = _METRIC_LABELS.get(metric, metric)
+
     fig.update_layout(
         coloraxis_colorbar=dict(
-            title=_METRIC_LABELS.get(metric, metric),
+            title=color_title,
             title_side="right", thickness=12, len=0.6,
             tickfont=dict(size=11),
         ),

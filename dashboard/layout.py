@@ -2,7 +2,7 @@
 
 from dash import dcc, html
 
-from data_loader import NUTS_IDS, YEARS, NAME_MAP, HAS_EXTENDED
+from data_loader import NUTS_IDS, YEARS, NAME_MAP, HAS_EXTENDED, HAS_GEMEENTE
 
 _REGION_OPTIONS = [{"label": "All regions (average)", "value": "__all__"}] + [
     {"label": f"{NAME_MAP.get(n, n)}  ({n})", "value": n} for n in NUTS_IDS
@@ -136,6 +136,18 @@ def create_layout(_df=None):
                                                 _card_header("Regional Map", [
                                                     _dd("metric-select", _METRIC_OPTIONS,
                                                         "Air_Inequity_Index", "220px"),
+                                                    dcc.RadioItems(
+                                                        id="boundary-select",
+                                                        options=[
+                                                            {"label": " NUTS-3 (40)",    "value": "nuts3"},
+                                                            {"label": " Gemeente (342)", "value": "gemeente",
+                                                             "disabled": not HAS_GEMEENTE},
+                                                        ],
+                                                        value="nuts3",
+                                                        inline=True,
+                                                        labelClassName="text-slate-500 text-xs cursor-pointer mr-3",
+                                                        inputClassName="mr-1 accent-blue-500",
+                                                    ),
                                                 ]),
                                                 dcc.Graph(id="choropleth-map", style={"height": "500px"},
                                                           config={"scrollZoom": True, "displayModeBar": False}),
