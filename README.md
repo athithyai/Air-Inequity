@@ -1,3 +1,13 @@
+---
+title: Air Inequity NL
+emoji: 🌍
+colorFrom: blue
+colorTo: red
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # Air Inequity Index, Netherlands
 
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)

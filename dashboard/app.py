@@ -46,4 +46,7 @@ app.layout = create_layout(None)
 import callbacks  # noqa: F401, E402
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=8050)
+    # Port 7860 for Hugging Face Spaces; 8050 for local / Render
+    import os
+    port = int(os.environ.get("PORT", 7860))
+    app.run(debug=False, host="0.0.0.0", port=port)
