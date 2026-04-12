@@ -5,7 +5,7 @@ colorFrom: blue
 colorTo: red
 sdk: docker
 app_port: 7860
-pinned: false
+pinned: true
 ---
 
 # Air Inequity Index, Netherlands
